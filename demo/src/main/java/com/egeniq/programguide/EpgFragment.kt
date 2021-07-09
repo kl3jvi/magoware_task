@@ -24,7 +24,6 @@ import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.temporal.ChronoUnit
-import java.lang.Error
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -34,18 +33,21 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
     //
     // override val DISPLAY_CURRENT_TIME_INDICATOR = false
     // override val DISPLAY_SHOW_PROGRESS = false
-
-init{
-    val testClass = ApiClient()
-    testClass.fetchJson()
-}
+//
+//init{
+//    val testClass = ApiClient()
+//    testClass.fetchJson()
+//    val MEA = testClass.mainApiEntryBody()
+//}
     companion object {
         private val TAG = EpgFragment::class.java.name
     }
+
     data class SimpleChannel(
         override val id: String,
         override val name: Spanned?,
-        override val imageUrl: String?) : ProgramGuideChannel
+        override val imageUrl: String?
+    ) : ProgramGuideChannel
 
     // You can put your own data in the program class
     data class SimpleProgram(
@@ -101,33 +103,92 @@ init{
         // Faking an asynchronous loading here
         setState(State.Loading)
 
-        val MIN_CHANNEL_START_TIME = localDate.atStartOfDay().withHour(2).truncatedTo(ChronoUnit.HOURS).atZone(DISPLAY_TIMEZONE)
-        val MAX_CHANNEL_START_TIME = localDate.atStartOfDay().withHour(8).truncatedTo(ChronoUnit.HOURS).atZone(DISPLAY_TIMEZONE)
+        val MIN_CHANNEL_START_TIME =
+            localDate.atStartOfDay().withHour(2).truncatedTo(ChronoUnit.HOURS)
+                .atZone(DISPLAY_TIMEZONE)
+        val MAX_CHANNEL_START_TIME =
+            localDate.atStartOfDay().withHour(8).truncatedTo(ChronoUnit.HOURS)
+                .atZone(DISPLAY_TIMEZONE)
 
-        val MIN_CHANNEL_END_TIME = localDate.atStartOfDay().withHour(21).truncatedTo(ChronoUnit.HOURS).atZone(DISPLAY_TIMEZONE)
-        val MAX_CHANNEL_END_TIME = localDate.plusDays(1).atStartOfDay().withHour(4).truncatedTo(ChronoUnit.HOURS).atZone(DISPLAY_TIMEZONE)
+        val MIN_CHANNEL_END_TIME =
+            localDate.atStartOfDay().withHour(21).truncatedTo(ChronoUnit.HOURS)
+                .atZone(DISPLAY_TIMEZONE)
+        val MAX_CHANNEL_END_TIME =
+            localDate.plusDays(1).atStartOfDay().withHour(4).truncatedTo(ChronoUnit.HOURS)
+                .atZone(DISPLAY_TIMEZONE)
 
         val MIN_SHOW_LENGTH_SECONDS = TimeUnit.MINUTES.toSeconds(5)
         val MAX_SHOW_LENGTH_SECONDS = TimeUnit.MINUTES.toSeconds(120)
 
 
         Single.fromCallable {
+
             val channels = listOf(
-                SimpleChannel("npo-1", SpannedString("NPO 1"), "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/NPO_1_logo_2014.svg/320px-NPO_1_logo_2014.svg.png"),
-                SimpleChannel("npo-2", SpannedString("NPO 2"), "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/NPO_2_logo_2014.svg/275px-NPO_2_logo_2014.svg.png"),
-                SimpleChannel("bbc-news", SpannedString("BBC NEWS"), "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/BBC_News_2019.svg/200px-BBC_News_2019.svg.png"),
-                SimpleChannel("zdf", SpannedString("ZDF"), "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/ZDF_logo.svg/200px-ZDF_logo.svg.png"),
-                SimpleChannel("jednotka", SpannedString("Jednotka"), "https://upload.wikimedia.org/wikipedia/en/thumb/7/76/Jednotka.svg/255px-Jednotka.svg.png"),
-                SimpleChannel("tv-nova", SpannedString("TV nova"), "https://upload.wikimedia.org/wikipedia/commons/2/2f/TV_Nova_logo_2017.png"),
-                SimpleChannel("tv-5-monde", SpannedString("TV5MONDE"), "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/TV5MONDE_logo.png/320px-TV5MONDE_logo.png"),
-                SimpleChannel("orf-2", SpannedString("ORF 2"), "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/ORF2_logo_n.svg/320px-ORF2_logo_n.svg.png"),
-                SimpleChannel("tvp-1", SpannedString("TVP 1"), "https://upload.wikimedia.org/wikipedia/commons/e/ec/Tvp1.png")
+                SimpleChannel(
+                    "npo-1",
+                    SpannedString("NPO 1"),
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/NPO_1_logo_2014.svg/320px-NPO_1_logo_2014.svg.png"
+                ),
+                SimpleChannel(
+                    "npo-2",
+                    SpannedString("NPO 2"),
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/NPO_2_logo_2014.svg/275px-NPO_2_logo_2014.svg.png"
+                ),
+                SimpleChannel(
+                    "bbc-news",
+                    SpannedString("BBC NEWS"),
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/BBC_News_2019.svg/200px-BBC_News_2019.svg.png"
+                ),
+                SimpleChannel(
+                    "zdf",
+                    SpannedString("ZDF"),
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/ZDF_logo.svg/200px-ZDF_logo.svg.png"
+                ),
+                SimpleChannel(
+                    "jednotka",
+                    SpannedString("Jednotka"),
+                    "https://upload.wikimedia.org/wikipedia/en/thumb/7/76/Jednotka.svg/255px-Jednotka.svg.png"
+                ),
+                SimpleChannel(
+                    "tv-nova",
+                    SpannedString("TV nova"),
+                    "https://upload.wikimedia.org/wikipedia/commons/2/2f/TV_Nova_logo_2017.png"
+                ),
+                SimpleChannel(
+                    "tv-5-monde",
+                    SpannedString("TV5MONDE"),
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/TV5MONDE_logo.png/320px-TV5MONDE_logo.png"
+                ),
+                SimpleChannel(
+                    "orf-2",
+                    SpannedString("ORF 2"),
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/ORF2_logo_n.svg/320px-ORF2_logo_n.svg.png"
+                ),
+                SimpleChannel(
+                    "tvp-1",
+                    SpannedString("TVP 1"),
+                    "https://upload.wikimedia.org/wikipedia/commons/e/ec/Tvp1.png"
+                )
             )
 
 //            val channels = ApiClient()
 
-            val showNames = listOf("News", "Sherlock Holmes", "It's Always Sunny In Philadelphia", "Second World War Documentary", "World Cup Final Replay", "Game of Thrones",
-                "NFL Sunday Night Football", "NCIS", "Seinfeld", "ER", "Who Wants To Be A Millionaire", "Our Planet", "Friends", "House of Cards")
+            val showNames = listOf(
+                "News",
+                "Sherlock Holmes",
+                "It's Always Sunny In Philadelphia",
+                "Second World War Documentary",
+                "World Cup Final Replay",
+                "Game of Thrones",
+                "NFL Sunday Night Football",
+                "NCIS",
+                "Seinfeld",
+                "ER",
+                "Who Wants To Be A Millionaire",
+                "Our Planet",
+                "Friends",
+                "House of Cards"
+            )
 
             val channelMap = mutableMapOf<String, List<ProgramGuideSchedule<SimpleProgram>>>()
 
@@ -135,12 +196,22 @@ init{
                 val scheduleList = mutableListOf<ProgramGuideSchedule<SimpleProgram>>()
                 var nextTime = randomTimeBetween(MIN_CHANNEL_START_TIME, MAX_CHANNEL_START_TIME)
                 while (nextTime.isBefore(MIN_CHANNEL_END_TIME)) {
-                    val endTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(nextTime.toEpochSecond() + Random.nextLong(MIN_SHOW_LENGTH_SECONDS, MAX_SHOW_LENGTH_SECONDS)), ZoneOffset.UTC)
+                    val endTime = ZonedDateTime.ofInstant(
+                        Instant.ofEpochSecond(
+                            nextTime.toEpochSecond() + Random.nextLong(
+                                MIN_SHOW_LENGTH_SECONDS,
+                                MAX_SHOW_LENGTH_SECONDS
+                            )
+                        ), ZoneOffset.UTC
+                    )
                     val schedule = createSchedule(showNames.random(), nextTime, endTime)
                     scheduleList.add(schedule)
                     nextTime = endTime
                 }
-                val endTime = if (nextTime.isBefore(MAX_CHANNEL_END_TIME)) randomTimeBetween(nextTime, MAX_CHANNEL_END_TIME) else MAX_CHANNEL_END_TIME
+                val endTime = if (nextTime.isBefore(MAX_CHANNEL_END_TIME)) randomTimeBetween(
+                    nextTime,
+                    MAX_CHANNEL_END_TIME
+                ) else MAX_CHANNEL_END_TIME
                 val finalSchedule = createSchedule(showNames.random(), nextTime, endTime)
                 scheduleList.add(finalSchedule)
                 channelMap[channel.id] = scheduleList
@@ -161,7 +232,11 @@ init{
             })
     }
 
-    private fun createSchedule(scheduleName: String, startTime: ZonedDateTime, endTime: ZonedDateTime): ProgramGuideSchedule<SimpleProgram> {
+    private fun createSchedule(
+        scheduleName: String,
+        startTime: ZonedDateTime,
+        endTime: ZonedDateTime
+    ): ProgramGuideSchedule<SimpleProgram> {
         val id = Random.nextLong(100_000L)
         val metadata = DateTimeFormatter.ofPattern("'Starts at' HH:mm").format(startTime)
         return ProgramGuideSchedule.createScheduleWithProgram(
@@ -170,10 +245,12 @@ init{
             endTime.toInstant(),
             true,
             scheduleName,
-            SimpleProgram(id.toString(),
+            SimpleProgram(
+                id.toString(),
                 "This is an example description for the programme. This description is taken from the SimpleProgram class, so by using a different class, " +
                         "you could easily modify the demo to use your own class",
-                metadata)
+                metadata
+            )
         )
     }
 

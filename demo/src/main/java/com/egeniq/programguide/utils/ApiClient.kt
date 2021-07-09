@@ -1,60 +1,53 @@
 package com.egeniq.programguide.utils
 
-import android.text.Spanned
-import android.text.SpannedString
-import android.util.Log
-import com.egeniq.programguide.EpgFragment
-import com.egeniq.programguide.api.*
+import com.egeniq.programguide.api.RestApi
 import com.google.gson.GsonBuilder
 import okhttp3.*
 import java.io.IOException
 
-class ApiClient {
-    val TAG = "API CLIENT INSTANCE"
+class ApiClient : Callback {
 
-    init {
-        fetchJson()
+    val API_URL = "https://admin.magoware.tv/epg.json"
+    private var magowareApi: RestApi? = null
+    private var onRequestCompleteListener: OnRequestCompleteListener? = null
 
-    }
 
-    fun fetchJson() {
-        val API_URL = "https://admin.magoware.tv/epg.json"
-        Log.i(TAG, "Fetching Json")
+    fun fetchJson(callback: OnRequestCompleteListener) {
 
+        this.onRequestCompleteListener = callback
         val request = Request.Builder().url(API_URL).build()
+
         val client = OkHttpClient()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                val body = response.body()?.string() //plain text i api
-                val gson = GsonBuilder().create() // map ne gson object
-
-                val mainEntryPerApi = gson.fromJson(body, RestApi::class.java)
-                Log.i(TAG, "Json Fetched")
-                simpChannel(mainEntryPerApi)
-
-//                val channels = gson.fromJson(body, Channel::class.java)
-//                val description = gson.fromJson(body, Desc::class.java)
-//                val icon = gson.fromJson(body, Icon::class.java)
-//                val prevShown = gson.fromJson(body, PreviouslyShown::class.java)
-//                val programmes = gson.fromJson(body, Programme::class.java)
-
-            }
-
-            override fun onFailure(call: Call, e: IOException) {
-                e.message?.let { Log.i("Connection Error", it) }
-                Log.e("Connection Error", "Problem")
-            }
-        })
+        client.newCall(request).enqueue(this)
     }
 
 
-    /**
-     * Krijohet objekti SimpleChannel("id", "name", imageUrl)
-     */
-    fun simpChannel(mainEntryPerApi: RestApi): List<EpgFragment.SimpleChannel> {
-        val id: String = mainEntryPerApi.tv.channel.`-id`
-        val name: Spanned = SpannedString(mainEntryPerApi.tv.channel.`display-name`)
-        val imageUrl: String? = mainEntryPerApi.tv.channel.icon.`-src`
-        return listOf(EpgFragment.SimpleChannel(id, name, imageUrl))
+    override fun onFailure(call: Call, e: IOException) {
+        onRequestCompleteListener?.onError()
+        println("failure ne callback")
     }
+
+    override fun onResponse(call: Call, response: Response) {
+
+        if (response.isSuccessful) {
+            val body = response.body()?.string()
+
+            val gson = GsonBuilder().create()
+            val mainEntryPerApi = gson.fromJson(body, RestApi::class.java)
+
+            parse(mainEntryPerApi)
+        }
+        magowareApi?.let { onRequestCompleteListener?.onSuccess(it) }
+    }
+
+    private fun parse(response: RestApi) {
+        this.magowareApi = response
+    }
+
+}
+
+
+interface OnRequestCompleteListener {
+    fun onSuccess(forcast: RestApi)
+    fun onError()
 }
