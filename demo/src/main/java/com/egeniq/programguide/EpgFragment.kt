@@ -14,6 +14,7 @@ import com.egeniq.androidtvprogramguide.ProgramGuideFragment
 import com.egeniq.androidtvprogramguide.R
 import com.egeniq.androidtvprogramguide.entity.ProgramGuideChannel
 import com.egeniq.androidtvprogramguide.entity.ProgramGuideSchedule
+import com.egeniq.programguide.utils.ApiClient
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -34,10 +35,13 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
     // override val DISPLAY_CURRENT_TIME_INDICATOR = false
     // override val DISPLAY_SHOW_PROGRESS = false
 
+init{
+    val testClass = ApiClient()
+    testClass.fetchJson()
+}
     companion object {
         private val TAG = EpgFragment::class.java.name
     }
-
     data class SimpleChannel(
         override val id: String,
         override val name: Spanned?,
@@ -51,6 +55,7 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
     )
 
     override fun onScheduleClicked(programGuideSchedule: ProgramGuideSchedule<SimpleProgram>) {
+
         val innerSchedule = programGuideSchedule.program
         if (innerSchedule == null) {
             // If this happens, then our data source gives partial info
@@ -118,6 +123,8 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
                 SimpleChannel("orf-2", SpannedString("ORF 2"), "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/ORF2_logo_n.svg/320px-ORF2_logo_n.svg.png"),
                 SimpleChannel("tvp-1", SpannedString("TVP 1"), "https://upload.wikimedia.org/wikipedia/commons/e/ec/Tvp1.png")
             )
+
+//            val channels = ApiClient()
 
             val showNames = listOf("News", "Sherlock Holmes", "It's Always Sunny In Philadelphia", "Second World War Documentary", "World Cup Final Replay", "Game of Thrones",
                 "NFL Sunday Night Football", "NCIS", "Seinfeld", "ER", "Who Wants To Be A Millionaire", "Our Planet", "Friends", "House of Cards")
