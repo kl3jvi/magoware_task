@@ -1,6 +1,8 @@
 package com.egeniq.programguide
 
 import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
 import android.text.Spanned
 import android.text.SpannedString
 import android.util.Log
@@ -14,10 +16,10 @@ import com.egeniq.androidtvprogramguide.ProgramGuideFragment
 import com.egeniq.androidtvprogramguide.R
 import com.egeniq.androidtvprogramguide.entity.ProgramGuideChannel
 import com.egeniq.androidtvprogramguide.entity.ProgramGuideSchedule
+import com.egeniq.programguide.api.RestApi
 import com.egeniq.programguide.utils.ApiClient
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.schedulers.Schedulers
+import com.egeniq.programguide.utils.OnRequestCompleteListener
+import io.reactivex.rxjava3.core.Observable
 import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.ZoneOffset
@@ -27,18 +29,16 @@ import org.threeten.bp.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
+
 class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
 
     // Feel free to change configuration values like this:
     //
     // override val DISPLAY_CURRENT_TIME_INDICATOR = false
     // override val DISPLAY_SHOW_PROGRESS = false
-//
-//init{
-//    val testClass = ApiClient()
-//    testClass.fetchJson()
-//    val MEA = testClass.mainApiEntryBody()
-//}
+//    var channels: List<SimpleChannel> = ArrayList()
+    var channels: List<SimpleChannel> = ArrayList()
+
     companion object {
         private val TAG = EpgFragment::class.java.name
     }
@@ -55,6 +55,7 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
         val description: String,
         val metadata: String
     )
+
 
     override fun onScheduleClicked(programGuideSchedule: ProgramGuideSchedule<SimpleProgram>) {
 
@@ -121,115 +122,74 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
         val MAX_SHOW_LENGTH_SECONDS = TimeUnit.MINUTES.toSeconds(120)
 
 
-        Single.fromCallable {
+        // marim te dhenat nga api client
 
-            val channels = listOf(
-                SimpleChannel(
-                    "npo-1",
-                    SpannedString("NPO 1"),
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/NPO_1_logo_2014.svg/320px-NPO_1_logo_2014.svg.png"
-                ),
-                SimpleChannel(
-                    "npo-2",
-                    SpannedString("NPO 2"),
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/NPO_2_logo_2014.svg/275px-NPO_2_logo_2014.svg.png"
-                ),
-                SimpleChannel(
-                    "bbc-news",
-                    SpannedString("BBC NEWS"),
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/BBC_News_2019.svg/200px-BBC_News_2019.svg.png"
-                ),
-                SimpleChannel(
-                    "zdf",
-                    SpannedString("ZDF"),
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/ZDF_logo.svg/200px-ZDF_logo.svg.png"
-                ),
-                SimpleChannel(
-                    "jednotka",
-                    SpannedString("Jednotka"),
-                    "https://upload.wikimedia.org/wikipedia/en/thumb/7/76/Jednotka.svg/255px-Jednotka.svg.png"
-                ),
-                SimpleChannel(
-                    "tv-nova",
-                    SpannedString("TV nova"),
-                    "https://upload.wikimedia.org/wikipedia/commons/2/2f/TV_Nova_logo_2017.png"
-                ),
-                SimpleChannel(
-                    "tv-5-monde",
-                    SpannedString("TV5MONDE"),
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/TV5MONDE_logo.png/320px-TV5MONDE_logo.png"
-                ),
-                SimpleChannel(
-                    "orf-2",
-                    SpannedString("ORF 2"),
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/ORF2_logo_n.svg/320px-ORF2_logo_n.svg.png"
-                ),
-                SimpleChannel(
-                    "tvp-1",
-                    SpannedString("TVP 1"),
-                    "https://upload.wikimedia.org/wikipedia/commons/e/ec/Tvp1.png"
+        ApiClient().fetchJson(object : OnRequestCompleteListener {
+            override fun onSuccess(mainEntryPerApi: RestApi) {
+                channels = simpChannel(mainEntryPerApi)
+                val showNames = listOf(
+                    "News",
+                    "Sherlock Holmes",
+                    "It's Always Sunny In Philadelphia",
+                    "Second World War Documentary",
+                    "World Cup Final Replay",
+                    "Game of Thrones",
+                    "NFL Sunday Night Football",
+                    "NCIS",
+                    "Seinfeld",
+                    "ER",
+                    "Who Wants To Be A Millionaire",
+                    "Our Planet",
+                    "Friends",
+                    "House of Cards"
                 )
-            )
 
-//            val channels = ApiClient()
+                val channelMap = mutableMapOf<String, List<ProgramGuideSchedule<SimpleProgram>>>()
 
-            val showNames = listOf(
-                "News",
-                "Sherlock Holmes",
-                "It's Always Sunny In Philadelphia",
-                "Second World War Documentary",
-                "World Cup Final Replay",
-                "Game of Thrones",
-                "NFL Sunday Night Football",
-                "NCIS",
-                "Seinfeld",
-                "ER",
-                "Who Wants To Be A Millionaire",
-                "Our Planet",
-                "Friends",
-                "House of Cards"
-            )
-
-            val channelMap = mutableMapOf<String, List<ProgramGuideSchedule<SimpleProgram>>>()
-
-            channels.forEach { channel ->
-                val scheduleList = mutableListOf<ProgramGuideSchedule<SimpleProgram>>()
-                var nextTime = randomTimeBetween(MIN_CHANNEL_START_TIME, MAX_CHANNEL_START_TIME)
-                while (nextTime.isBefore(MIN_CHANNEL_END_TIME)) {
-                    val endTime = ZonedDateTime.ofInstant(
-                        Instant.ofEpochSecond(
-                            nextTime.toEpochSecond() + Random.nextLong(
-                                MIN_SHOW_LENGTH_SECONDS,
-                                MAX_SHOW_LENGTH_SECONDS
-                            )
-                        ), ZoneOffset.UTC
-                    )
-                    val schedule = createSchedule(showNames.random(), nextTime, endTime)
-                    scheduleList.add(schedule)
-                    nextTime = endTime
+                channels.forEach { channel ->
+                    val scheduleList = mutableListOf<ProgramGuideSchedule<SimpleProgram>>()
+                    var nextTime = randomTimeBetween(MIN_CHANNEL_START_TIME, MAX_CHANNEL_START_TIME)
+                    while (nextTime.isBefore(MIN_CHANNEL_END_TIME)) {
+                        val endTime = ZonedDateTime.ofInstant(
+                            Instant.ofEpochSecond(
+                                nextTime.toEpochSecond() + Random.nextLong(
+                                    MIN_SHOW_LENGTH_SECONDS,
+                                    MAX_SHOW_LENGTH_SECONDS
+                                )
+                            ), ZoneOffset.UTC
+                        )
+                        val schedule = createSchedule(showNames.random(), nextTime, endTime)
+                        scheduleList.add(schedule)
+                        nextTime = endTime
+                    }
+                    val endTime = if (nextTime.isBefore(MAX_CHANNEL_END_TIME)) randomTimeBetween(
+                        nextTime,
+                        MAX_CHANNEL_END_TIME
+                    ) else MAX_CHANNEL_END_TIME
+                    val finalSchedule = createSchedule(showNames.random(), nextTime, endTime)
+                    scheduleList.add(finalSchedule)
+                    channelMap[channel.id] = scheduleList
                 }
-                val endTime = if (nextTime.isBefore(MAX_CHANNEL_END_TIME)) randomTimeBetween(
-                    nextTime,
-                    MAX_CHANNEL_END_TIME
-                ) else MAX_CHANNEL_END_TIME
-                val finalSchedule = createSchedule(showNames.random(), nextTime, endTime)
-                scheduleList.add(finalSchedule)
-                channelMap[channel.id] = scheduleList
+
+
+                val pair = Pair(channels, channelMap)
+
+
+                Handler(Looper.getMainLooper()).post(Runnable { //thread per te bere ndryshime ne UI
+                    setData(pair.first, pair.second, localDate)
+                    if (pair.first.isEmpty() || pair.second.isEmpty()) {
+                        setState(State.Error("No channels loaded."))
+                    } else {
+                        setState(State.Content)
+                    }
+                })
+
             }
-            return@fromCallable Pair(channels, channelMap)
-        }.delay(1, TimeUnit.SECONDS)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                setData(it.first, it.second, localDate)
-                if (it.first.isEmpty() || it.second.isEmpty()) {
-                    setState(State.Error("No channels loaded."))
-                } else {
-                    setState(State.Content)
-                }
-            }, {
-                Log.e(TAG, "Unable to load example data!", it)
-            })
+
+            override fun onError() {
+                Toast.makeText(context, "Couldn't fetch data", Toast.LENGTH_LONG).show()
+            }
+        })
     }
 
     private fun createSchedule(
@@ -264,5 +224,23 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
         // You can refresh other data here as well.
         requestingProgramGuideFor(currentDate)
     }
+
+
+    fun simpChannel(mainEntryPerApi: RestApi): List<SimpleChannel> {
+        val id: String = mainEntryPerApi.tv.channel.`-id`
+        val name: Spanned = SpannedString(mainEntryPerApi.tv.channel.`display-name`)
+        val imageUrl: String? = mainEntryPerApi.tv.channel.icon.`-src`
+        return listOf(SimpleChannel(id, name, imageUrl))
+    }
+
+
+    fun getData(): Observable<RestApi?>? {
+        return Observable.fromCallable {
+            var result: RestApi? = null
+
+            result
+        }
+    }
+
 
 }

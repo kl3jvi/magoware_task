@@ -12,7 +12,7 @@ class ApiClient : Callback {
     private var onRequestCompleteListener: OnRequestCompleteListener? = null
 
 
-    fun fetchJson(callback: OnRequestCompleteListener) {
+     fun fetchJson(callback: OnRequestCompleteListener) {
 
         this.onRequestCompleteListener = callback
         val request = Request.Builder().url(API_URL).build()
@@ -48,6 +48,6 @@ class ApiClient : Callback {
 
 
 interface OnRequestCompleteListener {
-    fun onSuccess(forcast: RestApi)
+    fun onSuccess(mainEntryPerApi: RestApi)
     fun onError()
 }
