@@ -1,6 +1,11 @@
 package com.egeniq.programguide.api
 
+import com.google.gson.annotations.SerializedName
+
+
 data class RestApi(
-//    val #standalone: String,
-    val tv: Tv
+
+    @SerializedName("tv") var tv: Tv,
+    @SerializedName("#standalone") var standalone: String
+
 )

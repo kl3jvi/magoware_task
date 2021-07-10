@@ -1,6 +1,11 @@
 package com.egeniq.programguide.api
 
+import com.google.gson.annotations.SerializedName
+
+
 data class Desc(
-//    val #text: String,
-    val `-lang`: String
+
+    @SerializedName("-lang") var lang: String,
+    @SerializedName("#text") var text: String
+
 )
