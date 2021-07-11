@@ -18,29 +18,23 @@ import com.egeniq.androidtvprogramguide.entity.ProgramGuideChannel
 import com.egeniq.androidtvprogramguide.entity.ProgramGuideSchedule
 import com.egeniq.programguide.api.RestApi
 import com.egeniq.programguide.utils.ApiInterface
-import org.threeten.bp.Instant
-import org.threeten.bp.LocalDate
-import org.threeten.bp.ZoneOffset
-import org.threeten.bp.ZonedDateTime
+import org.threeten.bp.*
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.temporal.ChronoUnit
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.util.concurrent.TimeUnit
+import java.text.SimpleDateFormat
 import kotlin.random.Random
 
 
+@Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
 class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
 
     // Feel free to change configuration values like this:
     //
     // override val DISPLAY_CURRENT_TIME_INDICATOR = false
     // override val DISPLAY_SHOW_PROGRESS = false
-//    var channels: List<SimpleChannel> = ArrayList()
-    var channels: List<SimpleChannel> = ArrayList()
-    var showNames: List<String> = ArrayList()
-    var descrip: List<String> = ArrayList()
 
     companion object {
         private val TAG = EpgFragment::class.java.name
@@ -107,81 +101,51 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
         // Faking an asynchronous loading here
         setState(State.Loading)
 
-        val MIN_CHANNEL_START_TIME =
-            localDate.atStartOfDay().withHour(2).truncatedTo(ChronoUnit.HOURS)
-                .atZone(DISPLAY_TIMEZONE)
-
-        val MAX_CHANNEL_START_TIME =
-            localDate.atStartOfDay().withHour(8).truncatedTo(ChronoUnit.HOURS)
-                .atZone(DISPLAY_TIMEZONE)
-
-        val MIN_CHANNEL_END_TIME =
-            localDate.atStartOfDay().withHour(21).truncatedTo(ChronoUnit.HOURS)
-                .atZone(DISPLAY_TIMEZONE)
-
         val MAX_CHANNEL_END_TIME =
             localDate.plusDays(1).atStartOfDay().withHour(4).truncatedTo(ChronoUnit.HOURS)
                 .atZone(DISPLAY_TIMEZONE)
-
-        val MIN_SHOW_LENGTH_SECONDS = TimeUnit.MINUTES.toSeconds(20)
-        val MAX_SHOW_LENGTH_SECONDS = TimeUnit.MINUTES.toSeconds(200)
-
+        println("${MAX_CHANNEL_END_TIME.toEpochSecond()} maximummitimes")
 
         // marim te dhenat nga api client
-
-
         val apiInterface = ApiInterface.create().getData()
         apiInterface.enqueue(object : Callback<RestApi> {
-
 
             override fun onResponse(call: Call<RestApi>, response: Response<RestApi>) {
                 if (response.isSuccessful) {
                     val responseBody = response.body()!!
 
-                    val channels = simpChannel(responseBody)
-                    val descriptionsOfMovies = descriptionTxt(responseBody)
-                    val showNames = movieNames(responseBody)
+                    val channels = simpChannel(responseBody) // channelList
+                    val showNames = movieNames(responseBody) // Programmes Title
+                    val descriptionsOfMovies =
+                        descriptionTxt(responseBody)// Programmes Description
+                    val timePairs = getTimes(responseBody) // Start/Stop Time per program
+
+
+
+
+
+
 
                     val channelMap =
                         mutableMapOf<String, List<ProgramGuideSchedule<SimpleProgram>>>()
 
-                    channels.forEach { channel ->
+                    for (channel in channels) {
                         val scheduleList = mutableListOf<ProgramGuideSchedule<SimpleProgram>>()
-                        var nextTime =
-                            randomTimeBetween(MIN_CHANNEL_START_TIME, MAX_CHANNEL_START_TIME)
-                        while (nextTime.isBefore(MIN_CHANNEL_END_TIME)) {
-                            val endTime = ZonedDateTime.ofInstant(
-                                Instant.ofEpochSecond(
-                                    nextTime.toEpochSecond() + Random.nextLong(
-                                        MIN_SHOW_LENGTH_SECONDS,
-                                        MAX_SHOW_LENGTH_SECONDS
-                                    )
-                                ), ZoneOffset.UTC
-                            )
+                        for (i in 0..2) {
+                            val title = showNames[i]
+                            val description = descriptionsOfMovies[i]
+                            val startTime = parseTime(timePairs[i].first)
+                            val stopTime = parseTime(timePairs[i].second)
+                            println("$startTime---------------------------")
 
-                            showNames.zip(descriptionsOfMovies) { a, b ->
-                                val schedule =
-                                    createSchedule(a, b, nextTime, endTime)
-                                scheduleList.add(schedule)
-                            }
-                            nextTime = endTime
-                        }
-                        val endTime =
-                            if (nextTime.isBefore(MAX_CHANNEL_END_TIME)) randomTimeBetween(
-                                nextTime,
-                                MAX_CHANNEL_END_TIME
-                            ) else MAX_CHANNEL_END_TIME
-
-                        showNames.zip(descriptionsOfMovies) { a, b ->
-                            val finalSchedule =
-                                createSchedule(a, b, nextTime, endTime)
-                            scheduleList.add(finalSchedule)
-
+                                val finalSchedule = createSchedule(title, description,
+                                    startTime!!,
+                                    stopTime!!)
+                                scheduleList.add(finalSchedule)
+                                println("$finalSchedule----------")
                         }
                         channelMap[channel.id] = scheduleList
                     }
-
-
                     val pair = Pair(channels, channelMap)
                     Handler(Looper.getMainLooper()).post { //thread per te bere ndryshime ne UI
                         setData(pair.first, pair.second, localDate)
@@ -209,7 +173,8 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
         startTime: ZonedDateTime,
         endTime: ZonedDateTime
     ): ProgramGuideSchedule<SimpleProgram> {
-        val id = Random.nextLong(100_000L)
+        val id = Random.nextLong(100_000L) // Id per cdo schedule unike
+
         val metadata = DateTimeFormatter.ofPattern("'Starts at' HH:mm").format(startTime)
         return ProgramGuideSchedule.createScheduleWithProgram(
             id,
@@ -223,6 +188,21 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
                 metadata
             )
         )
+    }
+
+
+    @SuppressLint("SimpleDateFormat")
+    private fun parseTime(time: String): ZonedDateTime? {
+        //2021-07-11T16:24:11.252+05:30[Asia/Calcutta]
+//        2021-07-08T21:43-04:00[America/New_York]
+        val epoch = SimpleDateFormat("yyyyMMddHHmmss").parse(time).time /1000
+
+        val instant = Instant.ofEpochSecond(epoch)
+        val zoneId = ZoneId.of("UTC")
+        val z = ZonedDateTime.ofInstant(instant, zoneId)
+
+
+        return z
     }
 
     private fun randomTimeBetween(min: ZonedDateTime, max: ZonedDateTime): ZonedDateTime {
@@ -254,14 +234,29 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
     fun descriptionTxt(mainEntryPerApi: RestApi): List<String> {
         val programmeList = mainEntryPerApi.tv.programme
         val descList: ArrayList<String> = ArrayList()
-        for(element in programmeList){
+        for (element in programmeList) {
             try {
                 descList.add(element.desc.text)
-            } catch (e:Exception){
+            } catch (e: Exception) {
                 e.stackTraceToString()
             }
         }
         return descList
+    }
+
+
+    private fun getTimes(responseBody: RestApi): List<Pair<String, String>> {
+        val programmeList = responseBody.tv.programme
+        val timePairs: ArrayList<Pair<String, String>> = ArrayList()
+
+        for (element in programmeList) {
+            try {
+                timePairs.add(Pair(element.start, element.stop))
+            } catch (e: Exception) {
+                e.stackTraceToString()
+            }
+        }
+        return timePairs
     }
 
 
