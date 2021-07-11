@@ -18,13 +18,14 @@ import com.egeniq.androidtvprogramguide.entity.ProgramGuideChannel
 import com.egeniq.androidtvprogramguide.entity.ProgramGuideSchedule
 import com.egeniq.programguide.api.RestApi
 import com.egeniq.programguide.utils.ApiInterface
-import org.threeten.bp.*
-import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDate
 import org.threeten.bp.temporal.ChronoUnit
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.random.Random
 
 
@@ -121,28 +122,25 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
                     val timePairs = getTimes(responseBody) // Start/Stop Time per program
 
 
-
-
-
-
-
                     val channelMap =
                         mutableMapOf<String, List<ProgramGuideSchedule<SimpleProgram>>>()
 
                     for (channel in channels) {
                         val scheduleList = mutableListOf<ProgramGuideSchedule<SimpleProgram>>()
-                        for (i in 0..2) {
+                        for (i in 0..showNames.size-2) {
                             val title = showNames[i]
                             val description = descriptionsOfMovies[i]
                             val startTime = parseTime(timePairs[i].first)
                             val stopTime = parseTime(timePairs[i].second)
                             println("$startTime---------------------------")
 
-                                val finalSchedule = createSchedule(title, description,
-                                    startTime!!,
-                                    stopTime!!)
-                                scheduleList.add(finalSchedule)
-                                println("$finalSchedule----------")
+                            val finalSchedule = createSchedule(
+                                title, description,
+                                startTime,
+                                stopTime
+                            )
+                            scheduleList.add(finalSchedule)
+                            println("$finalSchedule----------")
                         }
                         channelMap[channel.id] = scheduleList
                     }
@@ -170,16 +168,16 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
     private fun createSchedule(
         scheduleName: String,
         description: String,
-        startTime: ZonedDateTime,
-        endTime: ZonedDateTime
+        startTime: Long,
+        endTime: Long
     ): ProgramGuideSchedule<SimpleProgram> {
         val id = Random.nextLong(100_000L) // Id per cdo schedule unike
-
-        val metadata = DateTimeFormatter.ofPattern("'Starts at' HH:mm").format(startTime)
+        println("$startTime--------1626022530")
+        val metadata = "Test Metadata"
         return ProgramGuideSchedule.createScheduleWithProgram(
             id,
-            startTime.toInstant(),
-            endTime.toInstant(),
+            Instant.ofEpochSecond(startTime),
+            Instant.ofEpochSecond(endTime),
             true,
             scheduleName,
             SimpleProgram(
@@ -192,23 +190,17 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
 
 
     @SuppressLint("SimpleDateFormat")
-    private fun parseTime(time: String): ZonedDateTime? {
-        //2021-07-11T16:24:11.252+05:30[Asia/Calcutta]
-//        2021-07-08T21:43-04:00[America/New_York]
-        val epoch = SimpleDateFormat("yyyyMMddHHmmss").parse(time).time /1000
+    private fun parseTime(time: String): Long {
+        //2021-07-08T21:43:04.00+02:00[Asia/Calcutta]
+        //2021-07-08T21:43-04:00[America/New_York]
 
-        val instant = Instant.ofEpochSecond(epoch)
-        val zoneId = ZoneId.of("UTC")
-        val z = ZonedDateTime.ofInstant(instant, zoneId)
-
-
-        return z
+        val df = SimpleDateFormat("yyyyMMddHHmmss");
+        val date: Date = df.parse(time);
+        val epoch = date.time / 1000
+        println("$epoch-----------------------------------------------------------------")
+        return epoch
     }
 
-    private fun randomTimeBetween(min: ZonedDateTime, max: ZonedDateTime): ZonedDateTime {
-        val randomEpoch = Random.nextLong(min.toEpochSecond(), max.toEpochSecond())
-        return ZonedDateTime.ofInstant(Instant.ofEpochSecond(randomEpoch), ZoneOffset.UTC)
-    }
 
     override fun requestRefresh() {
         // You can refresh other data here as well.
