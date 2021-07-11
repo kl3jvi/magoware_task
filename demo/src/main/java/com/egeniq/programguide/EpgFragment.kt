@@ -18,9 +18,9 @@ import com.egeniq.androidtvprogramguide.entity.ProgramGuideChannel
 import com.egeniq.androidtvprogramguide.entity.ProgramGuideSchedule
 import com.egeniq.programguide.api.RestApi
 import com.egeniq.programguide.utils.ApiInterface
-import org.threeten.bp.Instant
-import org.threeten.bp.LocalDate
-import org.threeten.bp.temporal.ChronoUnit
+import org.threeten.bp.*
+
+import org.threeten.bp.format.DateTimeFormatter
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -102,11 +102,6 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
         // Faking an asynchronous loading here
         setState(State.Loading)
 
-        val MAX_CHANNEL_END_TIME =
-            localDate.plusDays(1).atStartOfDay().withHour(4).truncatedTo(ChronoUnit.HOURS)
-                .atZone(DISPLAY_TIMEZONE)
-        println("${MAX_CHANNEL_END_TIME.toEpochSecond()} maximummitimes")
-
         // marim te dhenat nga api client
         val apiInterface = ApiInterface.create().getData()
         apiInterface.enqueue(object : Callback<RestApi> {
@@ -127,12 +122,11 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
 
                     for (channel in channels) {
                         val scheduleList = mutableListOf<ProgramGuideSchedule<SimpleProgram>>()
-                        for (i in 0..showNames.size-2) {
+                        for (i in 0..showNames.size - 2) {
                             val title = showNames[i]
                             val description = descriptionsOfMovies[i]
                             val startTime = parseTime(timePairs[i].first)
                             val stopTime = parseTime(timePairs[i].second)
-                            println("$startTime---------------------------")
 
                             val finalSchedule = createSchedule(
                                 title, description,
@@ -140,7 +134,7 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
                                 stopTime
                             )
                             scheduleList.add(finalSchedule)
-                            println("$finalSchedule----------")
+
                         }
                         channelMap[channel.id] = scheduleList
                     }
@@ -172,8 +166,9 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
         endTime: Long
     ): ProgramGuideSchedule<SimpleProgram> {
         val id = Random.nextLong(100_000L) // Id per cdo schedule unike
-        println("$startTime--------1626022530")
-        val metadata = "Test Metadata"
+        val dateTime: ZonedDateTime = Instant.ofEpochSecond(startTime)
+            .atZone(ZoneOffset.UTC  )
+        val metadata = DateTimeFormatter.ofPattern("'Starts at' HH:mm").format(dateTime)
         return ProgramGuideSchedule.createScheduleWithProgram(
             id,
             Instant.ofEpochSecond(startTime),
@@ -192,12 +187,10 @@ class EpgFragment : ProgramGuideFragment<EpgFragment.SimpleProgram>() {
     @SuppressLint("SimpleDateFormat")
     private fun parseTime(time: String): Long {
         //2021-07-08T21:43:04.00+02:00[Asia/Calcutta]
-        //2021-07-08T21:43-04:00[America/New_York]
-
+        //2021-07-08T21:43-04:00[UTC]
         val df = SimpleDateFormat("yyyyMMddHHmmss");
         val date: Date = df.parse(time);
         val epoch = date.time / 1000
-        println("$epoch-----------------------------------------------------------------")
         return epoch
     }
 
